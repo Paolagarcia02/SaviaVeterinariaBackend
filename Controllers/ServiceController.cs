@@ -20,7 +20,7 @@ namespace SaviaVetAPI.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Vet,User")]
+        [AllowAnonymous]
         public async Task<ActionResult<List<Service>>> GetServices(
             [FromHeader(Name = "Name")] string name = "")
         {
@@ -29,7 +29,7 @@ namespace SaviaVetAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin,Vet,User")]
+        [AllowAnonymous]
         public async Task<ActionResult<Service>> GetOneService(int id)
         {
             var item = await _service.GetOneServiceAsync(id);

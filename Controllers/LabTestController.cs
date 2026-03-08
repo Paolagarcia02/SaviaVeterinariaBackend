@@ -25,40 +25,12 @@ namespace SaviaVetAPI.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Vet,User")]
+        [Authorize(Roles = "Admin,Vet")]
         public async Task<ActionResult<List<LabTest>>> GetLabTests(
             [FromHeader(Name = "AppointmentId")] int? appointmentId = null,
             [FromHeader(Name = "Status")] string status = "")
         {
             var list = await _labTestService.GetLabTestsAsync(appointmentId, status);
-
-            var myRole = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-
-            // SI ES USER: Filtramos manualmente haciendo el "doble salto"
-            if (myRole == "User")
-            {
-                var myIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                if (int.TryParse(myIdString, out int myId))
-                {
-                    var myTests = new List<LabTest>();
-
-                    foreach (var test in list)
-                    {
-                        var appointment = await _appointmentService.GetOneAppointmentAsync(test.Appointment_id);
-                        
-                        if (appointment != null)
-                        {
-                            var pet = await _petService.GetOnePetAsync(appointment.Pet_id);
-
-                            if (pet != null && pet.Owner_id == myId)
-                            {
-                                myTests.Add(test);
-                            }
-                        }
-                    }
-                    return Ok(myTests);
-                }
-            }
             return Ok(list);
         }
 
@@ -88,6 +60,20 @@ namespace SaviaVetAPI.Controllers
                 }
             }
             return Ok(item);
+        }
+
+        [HttpGet("user")]
+        [Authorize(Roles = "User")]
+        public async Task<ActionResult<List<LabTest>>> GetUserLabTests()
+        {
+            var myIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(myIdString, out int myId))
+            {
+                return Unauthorized();
+            }
+
+            var list = await _labTestService.GetLabTestsByOwnerIdAsync(myId);
+            return Ok(list);
         }
 
         [HttpPost]

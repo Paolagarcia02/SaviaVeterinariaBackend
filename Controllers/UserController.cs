@@ -89,43 +89,32 @@ namespace SaviaVetAPI.Controllers
             var myRole = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
             var myIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
+            if (string.IsNullOrEmpty(myRole))
+            {
+                return Unauthorized("No autorizado.");
+            }
+
             if (!int.TryParse(myIdString, out int myId))
             {
-                return BadRequest("Token inválido.");
+                return Unauthorized("Token inválido.");
             }
 
             // Buscamos a quién queremos editar
             var targetUser = await _service.GetOneUserAsync(dto.User_id);
             if (targetUser == null) return NotFound("Usuario no encontrado.");
 
-            // user
-            if (myRole == "User")
-            {
-                if (targetUser.User_id != myId)
-                {
-                    return StatusCode(403, "No puedes editar a otros usuarios.");
-                }
+            var isAdmin = myRole == "Admin";
 
-                if (!string.IsNullOrEmpty(dto.Role) && dto.Role != "User")
-                {
-                    return StatusCode(403, "No puedes cambiar tu propio rol.");
-                }
-                
-                dto.Role = "User"; 
+            // Solo Admin puede editar terceros.
+            if (!isAdmin && targetUser.User_id != myId)
+            {
+                return StatusCode(403, "No puedes editar a otros usuarios.");
             }
 
-            // VETERINARIO
-            if (myRole == "Vet")
+            // User/Vet nunca pueden cambiar role ni franchise_id.
+            if (!isAdmin && (!string.IsNullOrEmpty(dto.Role) || dto.Franchise_id != null))
             {
-                if (targetUser.Role == "Admin" || targetUser.Role == "Vet")
-                {
-                    return StatusCode(403, "Los veterinarios solo pueden editar fichas de clientes.");
-                }
-
-                if (dto.Role == "Admin")
-                {
-                    return StatusCode(403, "No puedes asignar roles administrativos.");
-                }
+                return StatusCode(403, "Solo Admin puede cambiar rol o franquicia.");
             }
 
             bool result = await _service.UpdateUserAsync(dto);
