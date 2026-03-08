@@ -25,6 +25,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Add services to the container.
 builder.Services.AddScoped<IAdoptionApplicationRepository, AdoptionApplicationRepository>();
 builder.Services.AddScoped<IClinicRoomRepository, ClinicRoomRepository>();
+builder.Services.AddScoped<IClinicScheduleRepository, ClinicScheduleRepository>();
 builder.Services.AddScoped<ILabTestRepository, LabTestRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IPetRepository, PetRepository>();
@@ -34,16 +35,36 @@ builder.Services.AddScoped<IFranchiseRepository, FranchiseRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdoptionApplicationService, AdoptionApplicationService>();
 builder.Services.AddScoped<IClinicRoomService, ClinicRoomService>();
+builder.Services.AddScoped<IClinicScheduleService, ClinicScheduleService>();
 builder.Services.AddScoped<ILabTestService, LabTestService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IPetService, PetService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<IFranchiseService, FranchiseService>();
+builder.Services.AddHttpClient<ApiService>();
+builder.Services.AddScoped<IImageService, CloudinaryImageService>();
 
 
 
-builder.Services.AddControllers();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var details = new Microsoft.AspNetCore.Mvc.ValidationProblemDetails(context.ModelState)
+            {
+                Title = "Error de validación",
+                Status = StatusCodes.Status400BadRequest
+            };
+            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(details);
+        };
+    });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
