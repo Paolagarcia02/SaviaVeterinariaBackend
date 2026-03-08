@@ -45,6 +45,23 @@ namespace SaviaVetAPI.Services
             return models;
         }
 
+        public async Task<List<LabTest>> GetLabTestsByOwnerIdAsync(int ownerId)
+        {
+            List<GetLabTestDTO> dtos = await _repository.GetLabTestsByOwnerIdAsync(ownerId);
+
+            return dtos.Select(dto => new LabTest
+            {
+                Test_id = dto.Test_id,
+                Appointment_id = dto.Appointment_id,
+                Test_type = dto.Test_type,
+                Result_data = dto.Result_data,
+                Comments = dto.Comments,
+                Status = dto.Status,
+                Requested_at = dto.Requested_at,
+                Completed_at = dto.Completed_at
+            }).ToList();
+        }
+
         public async Task<LabTest> GetOneLabTestAsync(int id)
         {
             GetLabTestDTO dto = await _repository.GetOneLabTestAsync(id);

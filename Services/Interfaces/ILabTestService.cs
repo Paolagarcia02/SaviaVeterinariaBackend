@@ -7,6 +7,7 @@ namespace SaviaVetAPI.Services
     {
         // Filtros: por cita o estado
         Task<List<LabTest>> GetLabTestsAsync(int? appointmentId, string? status);
+        Task<List<LabTest>> GetLabTestsByOwnerIdAsync(int ownerId);
         Task<LabTest> GetOneLabTestAsync(int id);
         
         Task<bool> AddLabTestAsync(AddLabTestDTO dto);

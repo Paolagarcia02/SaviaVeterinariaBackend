@@ -19,7 +19,7 @@ namespace SaviaVetAPI.Services
         }
 
         // 1. LOGIN
-        public async Task<string> Login(LoginDtoIn loginDtoIn) 
+        public async Task<LoginResponseDTO?> Login(LoginDtoIn loginDtoIn) 
         {
             var user = await _repository.GetUserByCredentialsAsync(loginDtoIn);
             
@@ -28,7 +28,15 @@ namespace SaviaVetAPI.Services
                 return null; 
             }
 
-            return GenerateToken(user);
+            var token = GenerateToken(user);
+
+            return new LoginResponseDTO 
+            {
+                Token = token,
+                Role = user.Role,
+                UserId = user.UserId,
+                FranchiseId = user.FranchiseId
+            };
         }
 
         // 2. REGISTRO
@@ -47,19 +55,25 @@ namespace SaviaVetAPI.Services
             var keyString = _configuration["JWT:SecretKey"]; 
             var key = Encoding.UTF8.GetBytes(keyString); 
 
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, userDtoOut.UserId.ToString()),
+                new Claim(ClaimTypes.Name, userDtoOut.UserName),
+                new Claim(ClaimTypes.Role, userDtoOut.Role),
+                new Claim(ClaimTypes.Email, userDtoOut.Email)
+            };
+
+            if (userDtoOut.FranchiseId.HasValue)
+            {
+                claims.Add(new Claim("franchise_id", userDtoOut.FranchiseId.Value.ToString()));
+            }
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Issuer = _configuration["JWT:ValidIssuer"],
                 // Para quién es el token (SaviaVetFrontend)
                 Audience = _configuration["JWT:ValidAudience"],
-
-                Subject = new ClaimsIdentity(new Claim[] 
-                {
-                    new Claim(ClaimTypes.NameIdentifier, userDtoOut.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, userDtoOut.UserName),
-                    new Claim(ClaimTypes.Role, userDtoOut.Role),
-                    new Claim(ClaimTypes.Email, userDtoOut.Email)
-                }),
+                Subject = new ClaimsIdentity(claims),
                 
                 // Duración del token (ej: 24 horas)
                 Expires = DateTime.UtcNow.AddHours(24), 
