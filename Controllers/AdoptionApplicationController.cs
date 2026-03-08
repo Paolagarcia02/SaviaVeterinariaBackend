@@ -39,6 +39,20 @@ namespace SaviaVetAPI.Controllers
             return Ok(list);
         }
 
+        [HttpGet("user")]
+        [Authorize(Roles = "User")]
+        public async Task<ActionResult<List<AdoptionApplication>>> GetUserAdoptionApplications()
+        {
+            var myIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(myIdString, out int myId))
+            {
+                return Unauthorized();
+            }
+
+            List<AdoptionApplication> list = await _service.GetAdoptionApplicationsAsync(myId, "");
+            return Ok(list);
+        }
+
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin,Vet,User")]
         public async Task<ActionResult<AdoptionApplication>> GetOneAdoptionApplication(int id)

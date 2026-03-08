@@ -15,11 +15,13 @@ namespace SaviaVetAPI.Controllers
     {
         private readonly IAppointmentService _service;
         private readonly IPetService _petService;
+        private readonly IUserService _userService;
 
-        public AppointmentController(IAppointmentService service, IPetService petService)
+        public AppointmentController(IAppointmentService service, IPetService petService, IUserService userService)
         {
             _service = service;
             _petService = petService;
+            _userService = userService;
         }
 
         [HttpGet]
@@ -49,6 +51,30 @@ namespace SaviaVetAPI.Controllers
                 return Ok(userAppointments);
             }
             return Ok(list);
+        }
+
+        [HttpGet("user")]
+        [Authorize(Roles = "User")]
+        public async Task<ActionResult<List<Appointment>>> GetUserAppointments()
+        {
+            var myIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(myIdString, out int myId))
+            {
+                return Unauthorized();
+            }
+
+            List<Appointment> list = await _service.GetAppointmentsAsync(null, null);
+            var userAppointments = new List<Appointment>();
+
+            foreach (var appointment in list)
+            {
+                var pet = await _petService.GetOnePetAsync(appointment.Pet_id);
+                if (pet != null && pet.Owner_id == myId)
+                {
+                    userAppointments.Add(appointment);
+                }
+            }
+            return Ok(userAppointments);
         }
 
         [HttpGet("{id}")]
@@ -86,22 +112,55 @@ namespace SaviaVetAPI.Controllers
             // Si es un Usuario normal, hay que ver qué está pidiendo
             if (myRole == "User")
             {
+                dto.Status = "Pendiente";
+                dto.Date_time = null;
+                dto.Vet_id = null;
+                dto.Room_id = null;
+
                 var myIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 
-                if (int.TryParse(myIdString, out int myId))
+                if (!int.TryParse(myIdString, out int myId))
                 {
-                    var pet = await _petService.GetOnePetAsync(dto.Pet_id);
-
-                    if (pet == null)
-                    {
-                        return NotFound("La mascota indicada no existe.");
-                    }
-
-                    if (pet.Owner_id != myId)
-                    {
-                        return StatusCode(403, "No puedes pedir citas para mascotas que no son tuyas.");
-                    }
+                    return Unauthorized();
                 }
+
+                var pet = await _petService.GetOnePetAsync(dto.Pet_id);
+
+                if (pet == null)
+                {
+                    return NotFound("La mascota indicada no existe.");
+                }
+
+                if (pet.Owner_id != myId)
+                {
+                    return StatusCode(403, "No puedes pedir citas para mascotas que no son tuyas.");
+                }
+
+                var franchiseClaim = User.Claims.FirstOrDefault(c => c.Type == "franchise_id")?.Value;
+                if (int.TryParse(franchiseClaim, out int claimFranchiseId) && claimFranchiseId > 0)
+                {
+                    dto.Franchise_id = claimFranchiseId;
+                }
+                else
+                {
+                    var myUser = await _userService.GetOneUserAsync(myId);
+                    if (myUser?.Franchise_id == null || myUser.Franchise_id <= 0)
+                    {
+                        return BadRequest("Tu usuario no tiene franquicia asignada para crear solicitudes.");
+                    }
+                    dto.Franchise_id = myUser.Franchise_id;
+                }
+            }
+
+            var errors = await _service.ValidateAddAsync(dto);
+            if (errors.Any())
+            {
+                var details = new ValidationProblemDetails(errors)
+                {
+                    Title = "Error de validación en la cita",
+                    Status = StatusCodes.Status400BadRequest
+                };
+                return BadRequest(details);
             }
 
             // Si llegamos aquí, es porque soy el dueño O soy Admin/Vet
@@ -113,6 +172,17 @@ namespace SaviaVetAPI.Controllers
         [Authorize(Roles = "Admin,Vet")]
         public async Task<ActionResult<bool>> UpdateAppointment([FromBody] UpdateAppointmentDTO dto)
         {
+            var errors = await _service.ValidateUpdateAsync(dto);
+            if (errors.Any())
+            {
+                var details = new ValidationProblemDetails(errors)
+                {
+                    Title = "Error de validación en la cita",
+                    Status = StatusCodes.Status400BadRequest
+                };
+                return BadRequest(details);
+            }
+
             bool result = await _service.UpdateAppointmentAsync(dto);
             return Ok(result);
         }

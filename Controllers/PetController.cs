@@ -14,14 +14,17 @@ namespace SaviaVetAPI.Controllers
     public class PetController : ControllerBase
     {
         private readonly IPetService _service;
+        private readonly IImageService _imageService;
 
-        public PetController(IPetService service)
+        public PetController(IPetService service, IImageService imageService)
         {
             _service = service;
+            _imageService = imageService;
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Vet,User")]
+        [AllowAnonymous]
+        //[Authorize(Roles = "Admin,Vet,User")]
         public async Task<ActionResult<List<Pet>>> GetPets(
             [FromHeader(Name = "OwnerId")] int? ownerId = null,
             [FromHeader(Name = "Species")] string species = "")
@@ -37,6 +40,20 @@ namespace SaviaVetAPI.Controllers
                 list = list.Where(p => p.Owner_id == myId).ToList();
             }
 
+            return Ok(list);
+        }
+
+        [HttpGet("user")]
+        [Authorize(Roles = "User")]
+        public async Task<ActionResult<List<Pet>>> GetUserPets()
+        {
+            var myIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(myIdString, out int myId))
+            {
+                return Unauthorized();
+            }
+
+            List<Pet> list = await _service.GetPetsAsync(myId, "");
             return Ok(list);
         }
 
@@ -66,7 +83,9 @@ namespace SaviaVetAPI.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin,Vet,User")]
-        public async Task<ActionResult<bool>> AddPet([FromBody] AddPetDTO dto)
+        [Consumes("multipart/form-data")]
+
+        public async Task<ActionResult<bool>> AddPet([FromForm] AddPetDTO dto)
         {
             var myRole = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
 
@@ -116,6 +135,24 @@ namespace SaviaVetAPI.Controllers
         {
             bool result = await _service.DeletePetAsync(id);
             return Ok(result);
+        }
+
+        [HttpPost("upload")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("File is empty");
+
+            // _logger.LogInformation($"Received file {file.FileName} - size: {file.Length} bytes");
+
+            var imageUrl = await _imageService.UploadImageAsync(file);
+            if (string.IsNullOrEmpty(imageUrl))
+            {
+                return BadRequest("Error al cargar la imagen.");
+            }
+
+            return Ok(new { Url = imageUrl });
         }
     }
 }
