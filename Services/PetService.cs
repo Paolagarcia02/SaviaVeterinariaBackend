@@ -7,10 +7,12 @@ namespace SaviaVetAPI.Services
     public class PetService : IPetService
     {
         private readonly IPetRepository _repository;
+        private readonly IImageService _imageService;
 
-        public PetService(IPetRepository repository)
+        public PetService(IPetRepository repository, IImageService imageService)
         {
             _repository = repository;
+            _imageService = imageService;
         }
 
         public async Task<List<Pet>> GetPetsAsync(int? ownerId, string? species)
@@ -67,6 +69,11 @@ namespace SaviaVetAPI.Services
 
         public async Task<bool> AddPetAsync(AddPetDTO dto)
         {
+            if (dto.Imagen != null && dto.Imagen.Length > 0)
+            {
+                dto.Photo_url = await _imageService.UploadImageAsync(dto.Imagen);
+            }
+
             return await _repository.AddPetAsync(dto);
         }
 
