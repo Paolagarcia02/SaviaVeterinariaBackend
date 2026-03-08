@@ -168,7 +168,7 @@ namespace SaviaVetAPI.Repositories
                 await connection.OpenAsync();
                 // NOTA: Asumo que en BDD tienes 'Password_hash'. 
                 // En un caso real, aquí deberías comparar hashes, no texto plano.
-                string query = "SELECT User_id, Full_name, Email, Role FROM User WHERE Email = @Email AND Password_hash = @Password";
+                string query = "SELECT User_id, Full_name, Email, Role, Franchise_id FROM User WHERE Email = @Email AND Password_hash = @Password";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -184,7 +184,8 @@ namespace SaviaVetAPI.Repositories
                                 UserId = reader.GetInt32(0),
                                 UserName = reader.GetString(1),
                                 Email = reader.GetString(2),
-                                Role = reader.GetString(3)
+                                Role = reader.GetString(3),
+                                FranchiseId = reader.IsDBNull(4) ? null : reader.GetInt32(4)
                             };
                         }
                     }

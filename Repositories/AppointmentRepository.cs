@@ -30,13 +30,13 @@ namespace SaviaVetAPI.Repositories
                             var item = new GetAppointmentDTO
                             {
                                 Appointment_id = reader.GetInt32(0),
-                                Date_time = reader.GetDateTime(1),
+                                Date_time = reader.IsDBNull(1) ? null : reader.GetDateTime(1),
                                 Duration_minutes = reader.GetInt32(2),
                                 Reason = reader.GetString(3),
                                 Status = reader.GetString(4),
                                 Notes = reader.IsDBNull(5) ? null : reader.GetString(5),
                                 Pet_id = reader.GetInt32(6),
-                                Vet_id = reader.GetInt32(7),
+                                Vet_id = reader.IsDBNull(7) ? null : reader.GetInt32(7),
                                 Franchise_id = reader.GetInt32(8),
                                 Room_id = reader.IsDBNull(9) ? null : reader.GetInt32(9)
                             };
@@ -66,13 +66,13 @@ namespace SaviaVetAPI.Repositories
                             item = new GetAppointmentDTO
                             {
                                 Appointment_id = reader.GetInt32(0),
-                                Date_time = reader.GetDateTime(1),
+                                Date_time = reader.IsDBNull(1) ? null : reader.GetDateTime(1),
                                 Duration_minutes = reader.GetInt32(2),
                                 Reason = reader.GetString(3),
                                 Status = reader.GetString(4),
                                 Notes = reader.IsDBNull(5) ? null : reader.GetString(5),
                                 Pet_id = reader.GetInt32(6),
-                                Vet_id = reader.GetInt32(7),
+                                Vet_id = reader.IsDBNull(7) ? null : reader.GetInt32(7),
                                 Franchise_id = reader.GetInt32(8),
                                 Room_id = reader.IsDBNull(9) ? null : reader.GetInt32(9)
                             };
@@ -89,15 +89,17 @@ namespace SaviaVetAPI.Repositories
             using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string query = "INSERT INTO Appointment (Date_time, Duration_minutes, Reason, Pet_id, Vet_id, Franchise_id) VALUES (@Date_time, @Duration_minutes, @Reason, @Pet_id, @Vet_id, @Franchise_id)";
+                string query = "INSERT INTO Appointment (Date_time, Duration_minutes, Reason, Status, Pet_id, Vet_id, Franchise_id, Room_id) VALUES (@Date_time, @Duration_minutes, @Reason, @Status, @Pet_id, @Vet_id, @Franchise_id, @Room_id)";
                 using (var command = new MySqlCommand(query, connection))
                 {
-                    command.Parameters.AddWithValue("@Date_time", dto.Date_time);
+                    command.Parameters.AddWithValue("@Date_time", (object?)dto.Date_time ?? DBNull.Value);
                     command.Parameters.AddWithValue("@Duration_minutes", dto.Duration_minutes);
                     command.Parameters.AddWithValue("@Reason", dto.Reason);
+                    command.Parameters.AddWithValue("@Status", string.IsNullOrEmpty(dto.Status) ? "Pendiente" : dto.Status);
                     command.Parameters.AddWithValue("@Pet_id", dto.Pet_id);
-                    command.Parameters.AddWithValue("@Vet_id", dto.Vet_id);
-                    command.Parameters.AddWithValue("@Franchise_id", dto.Franchise_id);
+                    command.Parameters.AddWithValue("@Vet_id", (object?)dto.Vet_id ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@Franchise_id", dto.Franchise_id!.Value);
+                    command.Parameters.AddWithValue("@Room_id", (object?)dto.Room_id ?? DBNull.Value);
                     
                     int rowsAffected = await command.ExecuteNonQueryAsync();
                     if (rowsAffected != 1)

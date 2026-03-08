@@ -46,6 +46,44 @@ namespace SaviaVetAPI.Repositories
             return list;
         }
 
+        public async Task<List<GetLabTestDTO>> GetLabTestsByOwnerIdAsync(int ownerId)
+        {
+            List<GetLabTestDTO> list = new List<GetLabTestDTO>();
+            using (var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                string query = @"SELECT lt.Test_id, lt.Appointment_id, lt.Test_type, lt.Result_data, lt.Comments, lt.Status, lt.Requested_at, lt.Completed_at
+                                 FROM Lab_test lt
+                                 INNER JOIN Appointment a ON a.Appointment_id = lt.Appointment_id
+                                 INNER JOIN Pet p ON p.Pet_id = a.Pet_id
+                                 WHERE p.Owner_id = @Owner_id";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Owner_id", ownerId);
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            var item = new GetLabTestDTO
+                            {
+                                Test_id = reader.GetInt32(0),
+                                Appointment_id = reader.GetInt32(1),
+                                Test_type = reader.GetString(2),
+                                Result_data = reader.IsDBNull(3) ? null : reader.GetString(3),
+                                Comments = reader.IsDBNull(4) ? null : reader.GetString(4),
+                                Status = reader.GetString(5),
+                                Requested_at = reader.GetDateTime(6),
+                                Completed_at = reader.IsDBNull(7) ? null : reader.GetDateTime(7)
+                            };
+                            list.Add(item);
+                        }
+                    }
+                }
+            }
+            return list;
+        }
+
         public async Task<GetLabTestDTO> GetOneLabTestAsync(int id)
         {
             GetLabTestDTO item = null;
