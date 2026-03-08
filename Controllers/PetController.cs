@@ -34,10 +34,10 @@ namespace SaviaVetAPI.Controllers
             var myRole = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
             var myIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
-            // SI ES USER: Filtramos la lista para dejar SOLO las suyas
+            // SI ES USER: puede ver sus mascotas y también las que están en adopción
             if (myRole == "User" && int.TryParse(myIdString, out int myId))
             {
-                list = list.Where(p => p.Owner_id == myId).ToList();
+                list = list.Where(p => p.Owner_id == myId || p.Status == "En Adopción").ToList();
             }
 
             return Ok(list);
@@ -66,13 +66,13 @@ namespace SaviaVetAPI.Controllers
 
             var myRole = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
 
-            //Si es User, verificar que sea el dueño
+            // Si es User, solo puede ver su mascota o una mascota en adopción
             if (myRole == "User")
             {
                 var myIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 if (int.TryParse(myIdString, out int myId))
                 {
-                    if (item.Owner_id != myId)
+                    if (item.Owner_id != myId && item.Status != "En Adopción")
                     {
                         return StatusCode(403, "No puedes ver la ficha de una mascota ajena.");
                     }
