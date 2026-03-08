@@ -49,11 +49,24 @@ namespace SaviaVetAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin,Vet,User")]
+        [AllowAnonymous]
         public async Task<ActionResult<Pet>> GetOne(int id)
         {
             var item = await _service.GetOnePetAsync(id);
             if (item == null) return NotFound();
+
+            // El detalle de mascotas en adopción o adoptadas es público.
+            if (item.Status == "En Adopción" || item.Status == "Adoptado")
+            {
+                return Ok(item);
+            }
+
+            // Para mascotas con dueño, requerimos sesión iniciada.
+            if (User?.Identity?.IsAuthenticated != true)
+            {
+                return Unauthorized("Debes iniciar sesión para ver esta mascota.");
+            }
+
             return Ok(item);
         }
 
