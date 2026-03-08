@@ -13,5 +13,5 @@ public class UserDtoOut
         public string Email { get; set; }
         [Required]
         public string Role { get; set; }
+        public int? FranchiseId { get; set; }
 }
-
