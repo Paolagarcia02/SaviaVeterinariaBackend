@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace SaviaVetAPI.DTOs
 {
@@ -16,12 +17,15 @@ namespace SaviaVetAPI.DTOs
 
     public class AddLabTestDTO
     {
+        [Range(1, int.MaxValue)]
         public required int Appointment_id { get; set; }
+        [Required]
         public required string Test_type { get; set; }
     }
 
     public class UpdateLabTestDTO
     {
+        [Range(1, int.MaxValue)]
         public required int Test_id { get; set; }
         public string? Result_data { get; set; }
         public string? Comments { get; set; }
