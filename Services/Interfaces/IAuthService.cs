@@ -5,7 +5,7 @@ namespace SaviaVetAPI.Services
 {
     public interface IAuthService
     {
-        Task<string> Login(LoginDtoIn loginDtoIn);
+        Task<LoginResponseDTO?> Login(LoginDtoIn loginDtoIn);
         
         Task<string> Register(UserDtoIn userDtoIn);
         

@@ -20,16 +20,15 @@ namespace SaviaVetAPI.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDtoIn loginDto)
         {
-            var token = await _authService.Login(loginDto);
+            var loginResponse = await _authService.Login(loginDto);
 
-            if (token == null)
+            if (loginResponse == null)
             {
                 // Si devuelve null es que el email o pass están mal
                 return Unauthorized("Credenciales incorrectas");
             }
 
-            // Si hay token, lo devolvemos en un JSON
-            return Ok(new { Token = token });
+            return Ok(loginResponse);
         }
 
         // POST: api/Auth/register
